@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import matplotlib.pyplot as plt
 
 
 def quadratic_function(x):
@@ -14,6 +15,10 @@ def bird_function(xy):
 
 def generate_population(population_size):
     return [(random.uniform(-10, 10), random.uniform(-10, 10)) for _ in range(population_size)]
+
+
+def uniform_population(population_size):
+    return [(random.uniform(-10, 10), random.uniform(-10, 10))] * population_size
 
 
 def find_the_best(P_0, eval):
@@ -62,6 +67,7 @@ def succession(P, P_eval, M, M_eval, population_size, e):
 #sigma = siła mutacji
 #p_c
 def evolutionary_algorithm(q, P, population_size, sigma, p_c, t_max, S, elite):
+    score_array = []
     t = 0
     P_eval = [q(specimen) for specimen in P]
     best_point, best_score = P[np.argmin(P_eval)], np.min(P_eval)
@@ -76,15 +82,112 @@ def evolutionary_algorithm(q, P, population_size, sigma, p_c, t_max, S, elite):
         P = succession(P, P_eval, M, M_eval, population_size, elite)
         P_eval = [q(specimen) for specimen in P]
         t += 1
-    return best_point, best_score
+        score_array.append(best_score)
+    return best_point, best_score, score_array
 
 
 if __name__ == "__main__":
-    sigma = 0.5     # zasięg mutacji
+    sigma = 2     # zasięg mutacji
     S = 2   # rozmiar turnieju
     p_c = 1     # prawdopodobieństwo krzyżowania
-    t = 8000     # liczba iteracji
-    population_size = 20
+    t = 17000     # liczba iteracji
+
     e = 1
-    print(evolutionary_algorithm(bird_function, generate_population(population_size), population_size, sigma, p_c, t, S, e))
+    population_size = 20
+    best_point, best_score, score_array = evolutionary_algorithm(bird_function,
+                                                                 generate_population(population_size),
+                                                                 population_size, sigma, p_c, t, S, e)
+    best_point_u, best_score_u, score_array_u = evolutionary_algorithm(bird_function,
+                                                                 uniform_population(population_size),
+                                                                 population_size, sigma, p_c, t, S, e)
+
+    plt.plot(np.arange(0, t, 1), score_array, np.arange(0, t, 1), score_array_u)
+    plt.legend(["random", "uniform"])
+    plt.xlabel("Iteration number")
+    plt.ylabel("Min z-value")
+    plt.xscale('log')
+    plt.show()
+    """for population_size in [10, 30, 60]:
+        mean_best_score = 0
+        mean_score_array = np.zeros(t)
+        n = 10
+        for _ in range(n):
+            best_point, best_score, score_array = evolutionary_algorithm(bird_function,
+                                                                         generate_population(population_size),
+                                                                         population_size, sigma, p_c, t, S, e)
+            mean_best_score += best_score
+            mean_score_array += score_array
+        plt.subplot(121)
+        plt.plot(population_size, mean_best_score / n, 'bo')
+        plt.subplot(122)
+        plt.plot(np.arange(0, t, 1), mean_score_array / n)
+    plt.subplot(121)
+    plt.xlabel(r"Population size")
+    plt.ylabel("Mean min z-value")
+    plt.subplot(122)
+    plt.xlabel("Iteration number")
+    plt.ylabel("Min z-value")
+    plt.xscale('log')
+    plt.legend(["population = 10", "population = 30", "population = 60"])
+    plt.show()"""
+    
+    
+    
+    
+    
+    
+
+    """population_size = 20
+    for sigma in [0.1, 0.5, 2]:
+        mean_best_score = 0
+        mean_score_array = np.zeros(t)
+        n = 10
+        for _ in range(n):
+            best_point, best_score, score_array = evolutionary_algorithm(bird_function,
+                                                                         generate_population(population_size),
+                                                                         population_size, sigma, p_c, t, S, e)
+            mean_best_score += best_score
+            mean_score_array += score_array
+        plt.subplot(121)
+        plt.plot(sigma, mean_best_score / n, 'bo')
+        plt.subplot(122)
+        plt.plot(np.arange(0, t, 1), mean_score_array / n)
+    plt.subplot(121)
+    plt.xlabel(r"$\sigma$")
+    plt.ylabel("Mean min z-value")
+    plt.subplot(122)
+    plt.xlabel("Iteration number")
+    plt.ylabel("Min z-value")
+    plt.xscale('log')
+    plt.legend(["$\sigma$ = 0.1", "$\sigma$ = 0.5", "$\sigma$ = 2"])
+    plt.show()"""
+
+
+
+
+    """population_size = 20
+    for e in [1, 5, 10]:
+        mean_best_score = 0
+        mean_score_array = np.zeros(t)
+        n = 10
+        for _ in range(n):
+            best_point, best_score, score_array = evolutionary_algorithm(bird_function,
+                                                                         generate_population(population_size),
+                                                                         population_size, sigma, p_c, t, S, e)
+            mean_best_score += best_score
+            mean_score_array += score_array
+        plt.subplot(121)
+        plt.plot(e, mean_best_score / n, 'bo')
+        plt.subplot(122)
+        plt.plot(np.arange(0, t, 1), mean_score_array / n)
+    plt.subplot(121)
+    plt.xlabel(r"Size of the elite")
+    plt.ylabel("Mean min z-value")
+    plt.subplot(122)
+    plt.xlabel("Iteration number")
+    plt.ylabel("Min z-value")
+    plt.xscale('log')
+    plt.legend(["elite = 1", "elite = 5", "elite = 10"])
+    plt.show()"""
+
 
