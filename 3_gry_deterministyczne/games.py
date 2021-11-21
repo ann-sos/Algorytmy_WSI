@@ -10,9 +10,9 @@ class Field:
         self.sign = sign
 
     def fill_field(self, sign):
-        if sign in ["O", "X"]:
+        if sign in [-1, 1]:
             self.sign = sign
-            if self.sign == "O":
+            if self.sign == -1:
                 self.value *= -1
 
 
@@ -39,8 +39,14 @@ class Board:
         self.state = state
         return state
 
+    def print_board(self):
+        for row in self.board:
+            for item in row:
+                print(item.sign, end="|\t")
+            print("\n")
+
     def change_state(self, idx, idy, sign):
-        if idx in range(3) and idx in range(3) and sign in ["O", "X"]:
+        if idx in range(3) and idx in range(3) and sign in [-1, 1]:
             self.board[idx][idy].sign = sign
 
     def board_state(self):
@@ -97,6 +103,7 @@ class Board:
         return self.is_board_full()
 
     def successors(self, player):
+
         # create a list of available fields
         available = []
         for i in range(len(self.board)):
@@ -126,9 +133,55 @@ def alpha_beta(state, depth, max_move, alpha, beta):
     pass
 
 
+def min_max(state: Board, depth, player):
+    if state.is_terminal(player) or depth == 0:
+        return state.heuristics()
+    U = state.successors(player)
+    score = []
+    for u in U:
+        score.append(min_max(state, depth - 1, -player))
+    #print(player, ":\t", score)
+    if player == 1:
+        return max(score)
+    if player == -1:
+        return min(score)
+
+
+def next_move(state: Board, depth, player):
+    if player == 1:
+        best_score = 0
+    else:
+        best_score = 20
+    best_move = (None, None)
+    for i in range(3):
+        for j in range(3):
+            if state.board[i][j].sign == "":
+                state_dict = state.board_state()
+                state_dict[i * 3 + j + 1] = player
+                score = min_max(Board(state_dict), depth, player)
+                if player == 1:
+                    if score > best_score:
+                        best_score = score
+                        best_move = (i, j)
+                else:
+                    if score < best_score:
+                        best_score = score
+                        best_move = (i, j)
+    print(best_move)
+    return best_move
+
 def main():
-    cpu1_choice = 'X'
-    cpu2_choice = 'O'
+    player = 1
+    my_board = Board()
+    while not my_board.is_terminal(player):
+        x, y = next_move(my_board, 2, player)
+        my_board.change_state(x, y, player)
+        my_board.print_board()
+        player *= -1
+
+
+if __name__ == "__main__":
+    main()
 
 
 def test_field():
@@ -143,19 +196,19 @@ def test_empty_board():
 
 def test_changing_state():
     my_board = Board()
-    my_board.change_state(1, 1, "O")
+    my_board.change_state(1, 1, -1)
     assert my_board.heuristics() == 4
 
 
 def test_filled_board():
-    my_board = Board({3: "X", 5: "O", 9: "X"})
+    my_board = Board({3: 1, 5: -1, 9: 1})
     assert my_board.heuristics() == 2
 
 
 @pytest.mark.parametrize("state, is_full",
                          [
-                             ({1: "O", 5: "O", 7: "X", 9: "X"}, False),
-                             ({1: "X", 2: "O", 3: "O", 4: "X", 5: "X", 6: "O", 7: "X", 8: "O", 9: "X"}, True)
+                             ({1: -1, 5: -1, 7: 1, 9: 1}, False),
+                             ({1: 1, 2: -1, 3: -1, 4: 1, 5: 1, 6: -1, 7: 1, 8: -1, 9: 1}, True)
                          ])
 def test_is_full(state, is_full):
     assert Board(state).is_board_full() == is_full
@@ -163,18 +216,18 @@ def test_is_full(state, is_full):
 
 @pytest.mark.parametrize('state, player, is_terminal',
                          [
-                             ({1: "O", 2: "O", 5: "O", 9: "X"}, "X", False),
-                             ({1: "O", 5: "O", 7: "X", 9: "X"}, "X", False),
-                             ({1: "O", 5: "O", 6: "X", 9: "X"}, "X", False),
-                             ({1: "X", 4: "X", 7: "X"}, "X", True),  # first column
-                             ({1: "X", 5: "X", 9: "X"}, "X", True),  # diagonal
-                             ({1: "X", 3: "O", 4: "X", 5: "O", 7: "O", 9: "X"}, "O", True)  # diagonal O
+                             ({1: -1, 2: -1, 5: -1, 9: 1}, 1, False),
+                             ({1: -1, 5: -1, 7: 1, 9: 1}, 1, False),
+                             ({1: -1, 5: -1, 6: 1, 9: 1}, 1, False),
+                             ({1: 1, 4: 1, 7: 1}, 1, True),  # first column
+                             ({1: 1, 5: 1, 9: 1}, 1, True),  # diagonal
+                             ({1: 1, 3: -1, 4: 1, 5: -1, 7: -1, 9: 1}, -1, True)  # diagonal O
                          ])
 def test_terminal_states(state: dict, player, is_terminal):
     assert Board(state).is_terminal(player) == is_terminal
 
 
 def test_successors():
-    test_board = Board({1: "X", 2: "O", 3: "O", 5: "X", 6: "O", 7: "X", 8: "O"})
-    assert len(test_board.successors("O")) == 2
-    assert len(test_board.successors("X")) == 2
+    test_board = Board({1: 1, 2: -1, 3: -1, 5: 1, 6: -1, 7: 1, 8: -1})
+    assert len(test_board.successors(-1)) == 2
+    assert len(test_board.successors(1)) == 2
