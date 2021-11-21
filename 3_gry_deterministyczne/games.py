@@ -5,7 +5,6 @@ import pytest
 
 class Field:
 
-
     def __init__(self, value, sign=""):
         self.value = value
         self.sign = sign
@@ -44,6 +43,13 @@ class Board:
         if idx in range(3) and idx in range(3) and sign in ["O", "X"]:
             self.board[idx][idy].sign = sign
 
+    def board_state(self):
+        state = {}
+        for i in range(len(self.board)):
+            for j in range(len(self.board)):
+                if self.board[i][j].sign != "":
+                    state[i * 3 + j + 1] = self.board[i][j].sign
+        return state
 
     def is_board_full(self):
         for row in self.board:
@@ -82,7 +88,7 @@ class Board:
         # 0,2 1,1, 2,0
         terminal = True
         for i in range(len(self.board)):
-            if self.board[i][2-i].sign is not player:
+            if self.board[i][2 - i].sign is not player:
                 terminal = False
                 break
         if terminal:
@@ -90,18 +96,30 @@ class Board:
         # check if full
         return self.is_board_full()
 
-    def successors(self):
+    def successors(self, player):
+        # create a list of available fields
+        available = []
+        for i in range(len(self.board)):
+            for j in range(len(self.board)):
+                if self.board[i][j].sign == "":
+                    available.append(i * 3 + j + 1)
+        # generate successors
+        successors = []
 
-        pass
+        for a in available:
+            board_copy = self.board_state()
+            board_copy[a] = player
+            successors.append(board_copy)
+        return successors
 
 
-def alphabeta(state, depth, max_move, alpha, beta):
+def alpha_beta(state, depth, max_move, alpha, beta):
     if state.is_terminal() or depth == 0:
         return state.heuristics()
     U = state.successors()
     if max_move:
         for u in U:
-            alpha = max(alpha, alphabeta(u, depth - 1, alpha, beta))
+            alpha = max(alpha, alpha_beta(u, depth - 1, alpha, beta))
             if alpha >> beta:
                 return beta
         return alpha
@@ -133,17 +151,30 @@ def test_filled_board():
     my_board = Board({3: "X", 5: "O", 9: "X"})
     assert my_board.heuristics() == 2
 
-def test_is_full():
-    pass
+
+@pytest.mark.parametrize("state, is_full",
+                         [
+                             ({1: "O", 5: "O", 7: "X", 9: "X"}, False),
+                             ({1: "X", 2: "O", 3: "O", 4: "X", 5: "X", 6: "O", 7: "X", 8: "O", 9: "X"}, True)
+                         ])
+def test_is_full(state, is_full):
+    assert Board(state).is_board_full() == is_full
+
 
 @pytest.mark.parametrize('state, player, is_terminal',
                          [
                              ({1: "O", 2: "O", 5: "O", 9: "X"}, "X", False),
                              ({1: "O", 5: "O", 7: "X", 9: "X"}, "X", False),
                              ({1: "O", 5: "O", 6: "X", 9: "X"}, "X", False),
-                             ({1: "X", 4: "X", 7: "X"}, "X", True),     # first column
-                             ({1: "X", 5: "X", 9: "X"}, "X", True),     # diagonal
-                             ({1: "X", 3: "O", 4: "X", 5: "O", 7: "O", 9: "X"}, "O", True)      # diagonal O
+                             ({1: "X", 4: "X", 7: "X"}, "X", True),  # first column
+                             ({1: "X", 5: "X", 9: "X"}, "X", True),  # diagonal
+                             ({1: "X", 3: "O", 4: "X", 5: "O", 7: "O", 9: "X"}, "O", True)  # diagonal O
                          ])
 def test_terminal_states(state: dict, player, is_terminal):
     assert Board(state).is_terminal(player) == is_terminal
+
+
+def test_successors():
+    test_board = Board({1: "X", 2: "O", 3: "O", 5: "X", 6: "O", 7: "X", 8: "O"})
+    assert len(test_board.successors("O")) == 2
+    assert len(test_board.successors("X")) == 2
