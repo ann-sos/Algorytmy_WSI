@@ -1,8 +1,24 @@
 import pytest
 from random import choice
-
+import copy
 """Min is using O, while Max uses X"""
 
+
+class Counter:
+    calls_count = {1: 0, -1: 0}
+
+    @classmethod
+    def increase_count(cls, player):
+        cls.calls_count[player] += 1
+
+    @classmethod
+    def reset_count(cls):
+        cls.calls_count[1] = 0
+        cls.calls_count[-1] = 0
+
+    @classmethod
+    def return_count(cls):
+        return cls.calls_count
 
 class Field:
 
@@ -130,6 +146,7 @@ class Board:
 
 
 def alpha_beta(state, depth, player, alpha, beta):
+    Counter.increase_count(player)
     if state.is_terminal(player) or depth == 0:
         return state.heuristics()
     U = state.successors(player)
@@ -149,6 +166,7 @@ def alpha_beta(state, depth, player, alpha, beta):
 
 
 def min_max(state: Board, depth, player, a=None, b=None):
+    Counter.increase_count(player)
     if state.is_terminal(player) or depth == 0:
         return state.heuristics()
     U = state.successors(player)
@@ -184,7 +202,7 @@ def next_move(state: Board, depth=0, player=1, algorithm=min_max):
                     if score < best_score:
                         best_score = score
                         best_move = (i, j)
-    #print(player, ":\t", best_move)
+    # print(player, ":\t", best_move)
     return best_move
 
 
@@ -196,6 +214,7 @@ def rand_move(state: Board):
 
 def make_stats(algorithm1, algorithm2, trials, depth1=0, depth2=0):
     who_won = {-1: 0, 1: 0, "Draw": 0}
+    searched_states = []
     for _ in range(trials):
         player = 1
         my_board = Board()
@@ -206,20 +225,24 @@ def make_stats(algorithm1, algorithm2, trials, depth1=0, depth2=0):
             elif player == -1:
                 x, y = next_move(my_board, depth2, player, algorithm2)
             my_board.change_state(x, y, player)
-            #my_board.print_board()
+            # my_board.print_board()
             if my_board.player_won(player):
                 won_by_player = True
                 who_won[player] += 1
                 break
             player *= -1
+        searched_states.append(copy.deepcopy(Counter.return_count()))
+        Counter.reset_count()
         if not won_by_player:
             who_won["Draw"] += 1
     dict_for_print = {min_max: "Algorytm Minimax", alpha_beta: "Algorytm Minimax \u03B1 - \u03B2",
                       rand_move: "AI losujący swój ruch", -1: "Gracz Min",
                       1: "Gracz Max", "Draw": "Remis"}
-    print("Liczba prób:\t", trials, "\nGracz Max:\n\tZastosowany algorytm:\t", dict_for_print[algorithm1], "\n\tGłębokość:\t", depth1,
+    print("Liczba prób:\t", trials, "\nGracz Max:\n\tZastosowany algorytm:\t", dict_for_print[algorithm1],
+          "\n\tGłębokość:\t", depth1,
           "\nGracz Min:\n\tZastosowany algorytm:\t", dict_for_print[algorithm2], "\n\tGłębokość:\t", depth2,
-          "\nWyniki:\n", "\tGracz Max", who_won[1], "\n\tGracz Min", who_won[-1], "\n\tRemis", who_won["Draw"])
+          "\nWyniki:\n", "\tGracz Max", who_won[1], "\n\tGracz Min", who_won[-1], "\n\tRemis", who_won["Draw"],
+          "\nPrzeszukane stany: \n", searched_states)
 
 
 def main():
@@ -233,6 +256,7 @@ def main():
     make_stats(min_max, min_max, 7, depth1=1, depth2=0)
     make_stats(min_max, min_max, 7, depth1=0, depth2=9)
     make_stats(rand_move, rand_move, 20)
+
 
 if __name__ == "__main__":
     main()
